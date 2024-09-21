@@ -14,8 +14,9 @@ class Splitter:
     def check(self, filename):
         try:
             # use encoding='utf-8' to avoid UnicodeDecodeError
+            # use parse_float to round float numbers to 6 decimal places
             with open(filename, 'r', encoding='utf-8') as f:
-                data = json.load(f)
+                data = json.load(f, parse_float=lambda x: round(float(x), 6))
         except:
             return False
         data_type = data.get('type')
