@@ -8,10 +8,44 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 
 // create cities featuregroup
 var cityLayer = L.featureGroup().addTo(map);
+// create marker featuregroup
+var markerLayer = L.featureGroup().addTo(map);
 
 var cityDropdown = document.getElementById('citySelect');
 var countyDropdown = document.getElementById('countySelect');
 var cities = {};
+// geojson of the selected city
+var currentUat = null;
+// latlng of the selected location
+var latlng = null;
+
+function setStatus(text, color) {
+    var statusDiv = document.getElementById('status');
+    if (text === null) {
+        if (currentUat) {
+            text = currentUat.properties.name;
+            text += ' | Population: ' + currentUat.properties.pop2020;
+            color = 'transparent';
+        } 
+    }
+    statusDiv.innerHTML = text;
+    if (color) {
+        statusDiv.style.backgroundColor = color;
+    }
+    else {
+        statusDiv.style.backgroundColor = 'transparent';
+    }
+}
+
+function picklocation(latlng) {
+    text = currentUat.properties.name;
+    text += ' | Population: ' + currentUat.properties.pop2020;
+    text += ' | ' + latlng.lat.toFixed(4) + ', ' + latlng.lng.toFixed(4);
+    setStatus(text, 'lightgreen');
+    // update marker layer with the new location
+    markerLayer.clearLayers();
+    L.marker(latlng).addTo(markerLayer);
+}
 
 // function to populate a dropdown with a name-value list
 function populateDropdown(dropdown, list) {
@@ -84,30 +118,39 @@ cityDropdown.addEventListener('change', function() {
         })
         .then(function(geojson) {
             console.log(geojson);
-            L.geoJSON(geojson)
-            .setStyle({
-                color: 'blue',
-                weight: 0.5,
-                fillColor: 'blue',
-                fillOpacity: 0.1,
-
+            L.geoJSON(geojson, {
+                style: {
+                    color: 'blue',
+                    weight: 0.5,
+                    fillOpacity: 0.1,
+                    fillColor: 'blue',
+                },
+                onEachFeature: function(feature, layer) {
+                    layer.on('click', function(e) {
+                        console.log("clicked on feature", feature);
+                        latlng = e.latlng;
+                        picklocation(latlng);
+                    });
+                }
             })
             .addTo(cityLayer);
             map.fitBounds(cityLayer.getBounds());
             return geojson;
         })
         .then(function(geojson) {
-            // write the properties of the selected city in the properties div
-            var cityDiv = document.getElementById('cityInfo');
-            text = geojson.properties.name;
-            text += ' | Population: ' + geojson.properties.pop2020;
-            cityDiv.innerHTML = text;
+            currentUat = geojson;
+            setStatus(null);
+            markerLayer.clearLayers();
         });
         // save the selected city in the URL
         var url = new URL(window.location);
         url.searchParams.set('city', selectedCity);
         url.searchParams.set('county', selectedCounty);
         window.history.pushState({}, '', url);
+});
 
-
+document.getElementById('clearBtn').addEventListener('click', function() {
+    markerLayer.clearLayers();
+    latlng = null;
+    setStatus(null);
 });
