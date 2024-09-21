@@ -37,6 +37,18 @@ fetch('cities.json')
                 value: county
             };
         }));
+    })
+    .then(function() {
+        // get city and county from URL and select them in the dropdowns
+        var url = new URL(window.location);
+        var city = url.searchParams.get('city');
+        var county = url.searchParams.get('county');
+        if (city && county) {
+            countyDropdown.value = county;
+            countyDropdown.dispatchEvent(new Event('change'));
+            cityDropdown.value = city;
+            cityDropdown.dispatchEvent(new Event('change'));
+        }
     });
 
 countyDropdown.addEventListener('change', function() {
@@ -82,5 +94,20 @@ cityDropdown.addEventListener('change', function() {
             })
             .addTo(cityLayer);
             map.fitBounds(cityLayer.getBounds());
+            return geojson;
+        })
+        .then(function(geojson) {
+            // write the properties of the selected city in the properties div
+            var cityDiv = document.getElementById('cityInfo');
+            text = geojson.properties.name;
+            text += ' | Population: ' + geojson.properties.pop2020;
+            cityDiv.innerHTML = text;
         });
+        // save the selected city in the URL
+        var url = new URL(window.location);
+        url.searchParams.set('city', selectedCity);
+        url.searchParams.set('county', selectedCounty);
+        window.history.pushState({}, '', url);
+
+
 });
